@@ -19,12 +19,17 @@ else:
         "capital_simulado": 100.0
     }
 
-# 2. Conexión a Binance
-exchange = ccxt.binance()
+# 2. Conexión a KuCoin (Sin restricciones de IP en GitHub Actions)
+exchange = ccxt.kucoin()
 simbolo = "BTC/USDT"
 temporalidad = "1h"
 
-ohlcv = exchange.fetch_ohlcv(simbolo, timeframe=temporalidad, limit=50)
+try:
+    ohlcv = exchange.fetch_ohlcv(simbolo, timeframe=temporalidad, limit=50)
+except Exception as e:
+    print(f"Error al conectar con el exchange: {e}")
+    exit(1)
+
 df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
 # Indicadores (RSI y ATR)
@@ -66,7 +71,7 @@ if estado["posicion_abierta"]:
 elif not estado["posicion_abierta"] and rsi_actual < 30:
     estado["posicion_abierta"] = True
     estado["precio_entrada"] = precio_actual
-    estado["stop_loss"] = precio_entrada - (1.5 * atr_actual)
+    estado["stop_loss"] = precio_actual - (1.5 * atr_actual)
     estado["capital_simulado"] *= (1 - comision)
     print(f"🚀 COMPRA SIMULADA en ${precio_actual:.2f} | Stop Loss a ${estado['stop_loss']:.2f}")
 
