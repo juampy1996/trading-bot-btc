@@ -5,9 +5,11 @@ import json
 import os
 from datetime import datetime
 
-# 1. Cargar o inicializar estado desde JSON
+# 1. Archivos de persistencia
 ARCHIVO_ESTADO = "estado_bot.json"
+ARCHIVO_HISTORIAL = "historial_trades.csv"
 
+# Cargar o inicializar estado desde JSON
 if os.path.exists(ARCHIVO_ESTADO):
     with open(ARCHIVO_ESTADO, "r") as f:
         estado = json.load(f)
@@ -19,7 +21,15 @@ else:
         "capital_simulado": 100.0
     }
 
-# 2. Conexión a KuCoin (Sin restricciones de IP en GitHub Actions)
+# Inicializar historial CSV si no existe
+if not os.path.exists(ARCHIVO_HISTORIAL):
+    df_historial = pd.DataFrame(columns=[
+        'fecha_hora', 'tipo_salida', 'precio_entrada', 'precio_salida', 
+        'rendimiento_pct', 'capital_resultante'
+    ])
+    df_historial.to_csv(ARCHIVO_HISTORIAL, index=False)
+
+# 2. Conexión a KuCoin
 exchange = ccxt.kucoin()
 simbolo = "BTC/USDT"
 temporalidad = "1h"
@@ -55,17 +65,34 @@ comision = 0.0015
 hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 print(f"[{hora_actual}] Reviso mercado | BTC: ${precio_actual:.2f} | RSI: {rsi_actual:.2f}")
 
+# Función para registrar la operación en el CSV
+def registrar_trade(tipo_salida, precio_salida, rendimiento_pct, capital_final):
+    nuevo_registro = pd.DataFrame([{
+        'fecha_hora': hora_actual,
+        'tipo_salida': tipo_salida,
+        'precio_entrada': estado["precio_entrada"],
+        'precio_salida': precio_salida,
+        'rendimiento_pct': round(rendimiento_pct * 100, 2),
+        'capital_resultante': round(capital_final, 2)
+    }])
+    nuevo_registro.to_csv(ARCHIVO_HISTORIAL, mode='a', header=False, index=False)
+
 # 3. Lógica de Trading
 if estado["posicion_abierta"]:
     if ultima_vela['low'] <= estado["stop_loss"]:
         rendimiento = (estado["stop_loss"] - estado["precio_entrada"]) / estado["precio_entrada"] - comision
         estado["capital_simulado"] *= (1 + rendimiento)
         print(f"❌ STOP LOSS TOCADO en ${estado['stop_loss']:.2f}. Capital: ${estado['capital_simulado']:.2f} USDT")
+        
+        registrar_trade('STOP_LOSS', estado['stop_loss'], rendimiento, estado["capital_simulado"])
         estado["posicion_abierta"] = False
+
     elif rsi_actual >= 50:
         rendimiento = (precio_actual - estado["precio_entrada"]) / estado["precio_entrada"] - comision
         estado["capital_simulado"] *= (1 + rendimiento)
         print(f"🎯 TAKE PROFIT/RSI TOCADO en ${precio_actual:.2f}. Capital: ${estado['capital_simulado']:.2f} USDT")
+        
+        registrar_trade('TAKE_PROFIT', precio_actual, rendimiento, estado["capital_simulado"])
         estado["posicion_abierta"] = False
 
 elif not estado["posicion_abierta"] and rsi_actual < 30:
