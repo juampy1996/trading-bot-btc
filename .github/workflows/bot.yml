@@ -26,10 +26,18 @@ jobs:
     - name: Ejecutar Bot
       run: python bot_github.py
 
-    - name: Guardar Cambios del Estado en GitHub
+    # - name: Guardar Cambios del Estado en GitHub
+    #   run: |
+    #     git config --global user.name "GitHub Action Bot"
+    #     git config --global user.email "bot@github.com"
+    #     git add estado_bot.json
+    #     git commit -m "Auto-update estado bot" || exit 0
+    #     git push
+        
+    - name: Guardar Cambios del Estado e Historial en GitHub
       run: |
         git config --global user.name "GitHub Action Bot"
         git config --global user.email "bot@github.com"
-        git add estado_bot.json
-        git commit -m "Auto-update estado bot" || exit 0
+        git add estado_bot.json historial_trades.csv
+        git commit -m "Auto-update estado e historial bot" || exit 0
         git push
