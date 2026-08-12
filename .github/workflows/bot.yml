@@ -2,16 +2,15 @@ name: Bot Trading Automatico
 
 on:
   schedule:
-    # Se ejecuta automáticamente al minuto 0 de cada hora
     - cron: '0 * * * *'
-  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub cuando quieras
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Descargar Código
+    - name: Checkout Código
       uses: actions/checkout@v3
 
     - name: Configurar Python
@@ -21,20 +20,18 @@ jobs:
 
     - name: Instalar Librerías
       run: |
-        pip install ccxt pandas numpy
+        python -m pip install --upgrade pip
+        pip install ccxt pandas numpy requests
 
     - name: Ejecutar Bot
-      run: python bot_github.py
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        if [ -f "bot_github.py" ]; then python bot_github.py; fi
+        if [ -f "bot_eth.py" ]; then python bot_eth.py; fi
 
-    # - name: Guardar Cambios del Estado en GitHub
-    #   run: |
-    #     git config --global user.name "GitHub Action Bot"
-    #     git config --global user.email "bot@github.com"
-    #     git add estado_bot.json
-    #     git commit -m "Auto-update estado bot" || exit 0
-    #     git push
-        
-    - name: Guardar Cambios del Estado e Historial en GitHub
+    - name: Guardar Cambios en GitHub
       run: |
         git config --global user.name "GitHub Action Bot"
         git config --global user.email "bot@github.com"
