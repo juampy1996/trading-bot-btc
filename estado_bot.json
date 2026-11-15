@@ -1,6 +1,6 @@
 {
-    "posicion_abierta": true,
+    "posicion_abierta": false,
     "precio_entrada": 64152.2,
     "stop_loss": 63016.34642857142,
-    "capital_simulado": 91.44385960050059
+    "capital_simulado": 92.19059704962122
 }
